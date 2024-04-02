@@ -1,6 +1,7 @@
 # BitLocker Hacked: Decrypting Windows Disk Encryption
 
 ![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/1.webp)
+<img src="images/1.webp" alt="" class="logo" />
 
 My first question is how much protection does BitLocker provide, is BitLocker that much secure?!, let’s see…
 
