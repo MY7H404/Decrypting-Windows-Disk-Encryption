@@ -1,6 +1,5 @@
 # BitLocker Hacked: Decrypting Windows Disk Encryption
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/1.webp)
 <img src="images/1.webp" alt="" class="logo" />
 
 My first question is how much protection does BitLocker provide, is BitLocker that much secure?!, let’s see…
@@ -9,7 +8,7 @@ My first question is how much protection does BitLocker provide, is BitLocker th
 
 BitLocker, a Windows feature, offers volume encryption to prevent unauthorized access to data on lost or stolen devices. When used with a Trusted Platform Module (TPM), it enhances security by binding encryption keys to specific hardware configurations, ensuring protection against tampering or unauthorized access.
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/2.webp)
+<img src="images/2.webp" alt="" class="logo" />
 
 According to Microsoft’s documentation, BitLocker encrypts entire volumes to mitigate the risks associated with data theft or exposure from compromised devices. The integration of TPM further fortifies this encryption by securely storing and managing cryptographic keys within the hardware, thus preventing unauthorized access even if the physical storage device is compromised.
 
@@ -19,7 +18,7 @@ It means that if someone steals hard drive and plugin to another computer they s
 
 I plugin BitLocker enabled hard drive on another computer and when I tried to mount that drive I got an error
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/3.webp)
+<img src="images/3.webp" alt="" class="logo" />
 
 The entire Windows partition is encrypted, and we can’t access any data on it. We can’t read or write anything on a BitLocker-enabled drive from another computer. But wait a minute — when I plug it back into the main computer, Windows boots up fine without any errors, and I don’t need to enter a password during boot. But how is this possible when the entire partition is encrypted? How can Windows boot up fine without any errors or the need to enter a password? Isn’t the partition encrypted? How exactly does BitLocker work?
 
@@ -31,15 +30,15 @@ Trusted Platform Module (TPM) serves as a vital component in enhancing the secur
 
 Attacking the TPM directly is very unlikely to bear fruit within the timeframe of testing. As a result, we must look at the trust relationships around the TPM and what it relies on. It is a distinct and separate chip from other components on the motherboard and may be susceptible to a variety of attacks. Our particular TPM in question is shown here:
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/4.webp)
+<img src="images/4.webp" alt="" class="logo" />
 
 Researching [that specific TPM chip](https://www.st.com/en/secure-mcus/st33tphf20spi.html) revealed it communicates to the CPU using the Serial Peripheral Interface (SPI) protocol:
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/5.webp)
+<img src="images/5.webp" alt="" class="logo" />
 
 This was further supported when we found the TPM mentioned in the laptop’s schematics:
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/6.webp)
+<img src="images/6.webp" alt="" class="logo" />
 
 SPI, a widely used communication protocol in embedded systems, lacks built-in encryption features due to its simplicity. This means that any encryption needs to be managed by the individual devices communicating via SPI. Currently, BitLocker does not employ the encrypted communication capabilities of the TPM 2.0 standard. As a result, data transmitted from the TPM is sent in plaintext, including the decryption key for Windows. Exploiting this vulnerability could potentially grant access to the encrypted drive.
 
@@ -47,25 +46,25 @@ Navigating around the TPM in this way is like bypassing a heavily guarded fortre
 
 Before delving into the intricate process of attaching leads to the TPM, we explored alternative avenues. It’s common for SPI chips to share the same “bus” with other devices, simplifying connections and reducing costs. After meticulous probing and scrutinizing the schematics, we discovered that the TPM shares an SPI bus with a solitary companion — the CMOS chip. Unlike the TPM, the CMOS chip boasts larger pins, specifically a SOP-8 (SOIC-8), offering a more accessible target for interception.
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/7.webp)
+<img src="images/7.webp" alt="" class="logo" />
 
 This was ideal. We proceeded to hook up our [Saleae logic analyzer](https://www.saleae.com/) to the pins according to the [CMOS’s datasheet](https://www.macrogroup.ru/sites/default/files/uploads/mx25l12873f_3v_128mb_v1.1.pdf):
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/8.webp)
+<img src="images/8.webp" alt="" class="logo" />
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/9.webp)
+<img src="images/9.webp" alt="" class="logo" />
 
 In contrast, a sophisticated attacker, as mentioned earlier, would opt for a [SOIC-8 clip](https://www.digikey.com/en/products/detail/pomona-electronics/5250/745102), streamlining the connection process and expediting a real-world attack by saving precious minutes. With the probes securely attached, we initiated the laptop’s boot sequence and meticulously recorded every byte of SPI data traversing the traces. Within the deluge of millions of data points lay the elusive BitLocker decryption key. The challenge now lay in pinpointing its exact location amidst the sea of information. Employing Henri Nurmi’s [BitLocker-spi-toolkit](https://github.com/WithSecureLabs/bitlocker-spi-toolkit) in an attempt to automatically extract the key proved unsuccessful with our capture. The High-Level Analyzer (HLA) depicted in the screenshot below illustrates the toolkit’s operation — some transactions were parsed accurately, while others remained elusive. Our capture exhibited peculiarities that confounded the HLA’s parsing capabilities, indicating a unique aspect of our data that eluded automated extraction.
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/10.webp)
+<img src="images/10.webp" alt="" class="logo" />
 
 After days of troubleshooting, comparing captures, and pulling hair, we finally figured out it was a combination of different bit masks for the TPM command packets as well as a different regex for finding the key. The BitLocker-spi-toolkit can parse these types of requests as well. Once we had that, lo and behold, the key popped out.
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/11.webp)
+<img src="images/11.webp" alt="" class="logo" />
 
 Now armed with the decryption key in hand, it was time to unlock the mysteries concealed within the SSD. With careful precision, we extracted the SSD from its housing, mounted it onto an adapter, and seamlessly plugged it into our system:
 
-![](https://github.com/MY7H404/Decrypting-Windows-Disk-Encryption/blob/main/images/12.webp)
+<img src="images/12.webp" alt="" class="logo" />
 
 We made a disk image of the drive which we operated on moving forward. Interestingly, in the entire process of the attack chain, the part that takes the longest is simply copying the 256GB of files. Once we had the image locally, we could use the [Dislocker](https://github.com/Aorimn/dislocker) toolset to decrypt the drive:
 
